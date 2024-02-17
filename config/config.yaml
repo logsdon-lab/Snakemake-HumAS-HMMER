@@ -1,0 +1,5 @@
+input_dir: "path/"
+# input_files: "path/{name}.fa"
+mode: "AS-HOR"
+model: "model.hmm"
+threads: 12
