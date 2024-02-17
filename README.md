@@ -5,7 +5,7 @@ This is a port of the following:
 
 ### Usage
 ```bash
-snakemake -np --configfile config/config.yaml
+snakemake -np -c 12 --configfile config/config.yaml
 ```
 
 ### Module

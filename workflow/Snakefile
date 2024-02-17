@@ -10,10 +10,10 @@ HMM_PROFILE_NAME, _ = os.path.splitext(os.path.basename(config["model"]))
 # # https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/dc5e958dfc3820fb8cc21a6ccc5cd8e5d6ef1052/hmmer-run.sh#L36
 if config.get("input_dir"):
     NAME_PATTERN = os.path.join(config["input_dir"], "{name}.fa")
-elif config.get("input_files"):
-    NAME_PATTERN = config["input_files"]
+elif config.get("input_files_pattern"):
+    NAME_PATTERN = config["input_files_pattern"]
 try:
-    NAMES = glob_wildcards(CHR_NAME_PATTERN).name
+    NAMES = glob_wildcards(NAME_PATTERN).name
 except AttributeError:
     raise ValueError("Input files must have name wildcard.")
 
@@ -32,9 +32,7 @@ elif HUMAS_HMMER_MODE == "SF":
     overlap_output_pattern = os.path.join(config["output_dir"], "AS-SF-vs-{name}.bed")
     final_output_pattern = os.path.join(config["output_dir"], "AS-strand-vs-{name}.bed")
     # FEDOR: AS-strand annotation. "+" is blue, "-" is red
-    final_output_cmd = """
-    -F $'\\t' 'BEGIN {{OFS = FS}} {{if ($6=="+") {{$9="0,0,255"}}; if ($6=="-") {{$9="255,0,0"}} print $0}}'
-    """
+    final_output_cmd = """-F $'\\t' 'BEGIN {{OFS = FS}} {{if ($6=="+") {{$9="0,0,255"}}; if ($6=="-") {{$9="255,0,0"}} print $0}}'"""
 else:
     raise ValueError(f"Invalid HumAS-HMMER mode. ({config['mode']})")
 
@@ -74,14 +72,14 @@ rule humas_hmmer_analysis:
         {params.no_alignment} \
         --tblout {output} \
         {params.toss_human_readable_output} \
-        {input.hmm} {input.chr_fa} &> {log}
+        {input.hmm} {input.fa} &> {log}
         """
 
 
 # https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/dc5e958dfc3820fb8cc21a6ccc5cd8e5d6ef1052/hmmer-run.sh#L46
 rule reformat_hmm_tbl_to_bed_w_thr:
     input:
-        script="scripts/hmmertblout2bed.awk",
+        script="workflow/scripts/hmmertblout2bed.awk",
         hmm_tbl=rules.humas_hmmer_analysis.output,
     output:
         regions=temp(HMM_PROFILE_NAME + "-vs-{name}-tbl.bed"),
@@ -160,15 +158,15 @@ rule filter_hmm_res_uniq_element:
 
 rule filter_hmm_res_overlaps:
     input:
-        script="scripts/overlap_filter.py",
+        script="workflow/scripts/overlap_filter.py",
         regions=rules.filter_hmm_res_uniq_element.output,
     output:
         overlap_output_pattern,
     conda:
-        "env/py.yaml"
+        "env/env.yaml"
     log:
         "logs/filter_hmm_res_overlaps_{name}.log",
-    run:
+    shell:
         """
         python {input.script} {input.regions} > {output} 2> {log}
         """
@@ -182,7 +180,7 @@ rule filter_final_hmm_res_by_mode:
     params:
         cmd=lambda wc: final_output_cmd,
     conda:
-        "env/tools.yaml"
+        "env/env.yaml"
     log:
         "logs/filter_final_hmm_res_by_mode_{name}.log",
     shell:

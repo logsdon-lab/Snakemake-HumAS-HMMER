@@ -1,5 +1,6 @@
-input_dir: "path/"
-# input_files: "path/{name}.fa"
-mode: "AS-HOR"
-model: "model.hmm"
+input_dir: "test/"
+output_dir: "test/"
+# input_files_pattern: "test/{name}.fa"
+mode: "SF"
+model: "data/AS-HORs-hmmer3.3.2-120124.hmm"
 threads: 12
