@@ -2,5 +2,5 @@ input_dir: "test/"
 output_dir: "test/"
 # input_files_pattern: "test/{name}.fa"
 mode: "SF"
-model: "data/AS-HORs-hmmer3.3.2-120124.hmm"
+model: "data/AS-SFs-hmmer3.0.290621.hmm"
 threads: 12

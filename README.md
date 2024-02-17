@@ -20,5 +20,5 @@ module HumAS_HMMER:
         )
     config: config
 
-use rule * from HumAS_HMMER as *
+use rule * from HumAS_HMMER as hmm_*
 ```
