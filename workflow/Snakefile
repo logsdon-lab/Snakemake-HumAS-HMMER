@@ -4,54 +4,25 @@ import os
 # * https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/main/hmmer-run.sh
 # * https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/main/hmmer-run_SF.sh
 
-
-# https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/dc5e958dfc3820fb8cc21a6ccc5cd8e5d6ef1052/hmmer-run.sh#L31
-HMM_PROFILE_NAME, _ = os.path.splitext(os.path.basename(config["model"]))
-# # https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/dc5e958dfc3820fb8cc21a6ccc5cd8e5d6ef1052/hmmer-run.sh#L36
-if config.get("input_dir"):
-    NAME_PATTERN = os.path.join(config["input_dir"], "{name}.fa")
-elif config.get("input_files_pattern"):
-    NAME_PATTERN = config["input_files_pattern"]
-try:
-    NAMES = glob_wildcards(NAME_PATTERN).name
-except AttributeError:
-    raise ValueError("Input files must have name wildcard.")
-
-# Based on mode, change output file and commands.
-# https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/dc5e958dfc3820fb8cc21a6ccc5cd8e5d6ef1052/hmmer-run.sh#L62
-# https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/dc5e958dfc3820fb8cc21a6ccc5cd8e5d6ef1052/hmmer-run_SF.sh#L62
-# https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/dc5e958dfc3820fb8cc21a6ccc5cd8e5d6ef1052/hmmer-run.sh#L66
-# https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/dc5e958dfc3820fb8cc21a6ccc5cd8e5d6ef1052/hmmer-run_SF.sh#L66
-HUMAS_HMMER_MODE = config["mode"]
-if HUMAS_HMMER_MODE == "AS-HOR":
-    overlap_output_pattern = os.path.join(config["output_dir"], "AS-HOR+SF-vs-{name}.bed")
-    final_output_pattern = os.path.join(config["output_dir"], "AS-HOR-vs-{name}.bed")
-    # FEDOR: AS-HOR only (skip SF monomers)
-    final_output_cmd = "'{{ if (length($4)==2) {{next}} print}}'"
-elif HUMAS_HMMER_MODE == "SF":
-    overlap_output_pattern = os.path.join(config["output_dir"], "AS-SF-vs-{name}.bed")
-    final_output_pattern = os.path.join(config["output_dir"], "AS-strand-vs-{name}.bed")
-    # FEDOR: AS-strand annotation. "+" is blue, "-" is red
-    final_output_cmd = """-F $'\\t' 'BEGIN {{OFS = FS}} {{if ($6=="+") {{$9="0,0,255"}}; if ($6=="-") {{$9="255,0,0"}} print $0}}'"""
-else:
-    raise ValueError(f"Invalid HumAS-HMMER mode. ({config['mode']})")
-
-
-rule humas_hmmer_all:
-    input:
-        expand(overlap_output_pattern, name=NAMES),
-        expand(final_output_pattern, name=NAMES),
+if config.get("input_dir") and "fnames" not in config:
+    NAME_PATTERN = os.path.join(config["input_dir"], "{fname}.fa")
+    try:
+        NAMES = glob_wildcards(NAME_PATTERN).fname
+    except AttributeError:
+        raise ValueError("Input files must have name wildcard.")
+elif config.get("fnames"):
+    NAMES = config["fnames"]
 
 
 # https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/dc5e958dfc3820fb8cc21a6ccc5cd8e5d6ef1052/hmmer-run.sh#L42
 rule humas_hmmer_analysis:
     input:
-        fa=NAME_PATTERN,
+        fa=os.path.join(config["input_dir"], "{fname}.fa"),
         hmm=config["model"],
     output:
         # https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/dc5e958dfc3820fb8cc21a6ccc5cd8e5d6ef1052/hmmer-run.sh#L49
         # Ugh. f-string / numbers will screw up regex for wildcard parsing.
-        temp("nhmmer-" + HMM_PROFILE_NAME + "-vs-{name}-tbl.out"),
+        temp("nhmmer-" + os.path.splitext(os.path.basename(config["model"]))[0] + "-vs-{fname}-tbl.out"),
     threads: config["threads"]
     params:
         # https://manpages.ubuntu.com/manpages/focal/man1/nhmmer.1.html
@@ -61,9 +32,9 @@ rule humas_hmmer_analysis:
     conda:
         "env/env.yaml"
     log:
-        "logs/humas_hmmer_analysis_{name}.log",
+        "logs/humas_hmmer_analysis_{fname}.log",
     benchmark:
-        "benchmarks/humas_hmmer_analysis_{name}.tsv"
+        "benchmarks/humas_hmmer_analysis_{fname}.tsv"
     shell:
         """
         nhmmer \
@@ -81,13 +52,13 @@ rule reformat_hmm_tbl_to_bed_w_thr:
     input:
         hmm_tbl=rules.humas_hmmer_analysis.output,
     output:
-        regions=temp(HMM_PROFILE_NAME + "-vs-{name}-tbl.bed"),
+        regions=temp(os.path.splitext(os.path.basename(config["model"]))[0] + "-vs-{fname}-tbl.bed"),
     params:
         threshold_score=0.7,
     conda:
         "env/env.yaml"
     log:
-        "logs/reformat_hmm_tbl_to_bed_w_thr_{name}.log",
+        "logs/reformat_hmm_tbl_to_bed_w_thr_{fname}.log",
     shell:
         """
         awk -v th={params.threshold_score} '\
@@ -384,11 +355,11 @@ rule sort_hmm_res_by_name_coord:
     input:
         rules.reformat_hmm_tbl_to_bed_w_thr.output,
     output:
-        temp("_nhmmer-t0-{name}.bed"),
+        temp("_nhmmer-t0-{fname}.bed"),
     conda:
         "env/env.yaml"
     log:
-        "logs/sort_hmm_res_by_name_coord_{name}.log",
+        "logs/sort_hmm_res_by_name_coord_{fname}.log",
     shell:
         """
         sort -k 1.4,1 -k 2,2n {input} > {output} 2> {log}
@@ -400,7 +371,7 @@ rule filter_hmm_res_by_score:
     input:
         rules.sort_hmm_res_by_name_coord.output,
     output:
-        temp("_nhmmer-t1-{name}.bed"),
+        temp("_nhmmer-t1-{fname}.bed"),
     # https://bedops.readthedocs.io/en/latest/content/reference/statistics/bedmap.html#usage
     params:
         # Operation
@@ -410,7 +381,7 @@ rule filter_hmm_res_by_score:
     conda:
         "env/env.yaml"
     log:
-        "logs/filter_hmm_res_by_score_{name}.log",
+        "logs/filter_hmm_res_by_score_{fname}.log",
     shell:
         """
         bedmap {params.op_opt} {params.overlap_opt} \
@@ -425,25 +396,30 @@ rule filter_hmm_res_uniq_element:
         rules.filter_hmm_res_by_score.output,
     output:
         # Original workflow overwrites sort_hmm_tbl_bed_by_name_coord output.
-        # I give unique name and marked as temp.
-        temp("_nhmmer-t3-{name}.bed"),
+        # I give unique fname and marked as temp.
+        temp("_nhmmer-t3-{fname}.bed"),
     conda:
         "env/env.yaml"
     log:
-        "logs/filter_hmm_res_uniq_element_{name}.log",
+        "logs/filter_hmm_res_uniq_element_{fname}.log",
     shell:
         """
         awk "{{if(!(\$0 in a)){{a[\$0]; print}}}}" {input} > {output} 2> {log}
         """
 
 
-rule filter_hmm_res_overlaps:
+# Based on mode, change output file and commands.
+# https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/dc5e958dfc3820fb8cc21a6ccc5cd8e5d6ef1052/hmmer-run.sh#L62
+# https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/dc5e958dfc3820fb8cc21a6ccc5cd8e5d6ef1052/hmmer-run_SF.sh#L62
+# https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/dc5e958dfc3820fb8cc21a6ccc5cd8e5d6ef1052/hmmer-run.sh#L66
+# https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/dc5e958dfc3820fb8cc21a6ccc5cd8e5d6ef1052/hmmer-run_SF.sh#L66
+rule filter_hmm_res_overlaps_as_hor:
     input:
         regions=rules.filter_hmm_res_uniq_element.output,
     output:
-        overlap_output_pattern,
+        os.path.join(config["output_dir"], "AS-HOR+SF-vs-{fname}.bed"),
     log:
-        "logs/filter_hmm_res_overlaps_{name}.log",
+        "logs/filter_hmm_res_overlaps_{fname}_as_hor.log",
     run:
         # init indexes
         new_bed_list = []
@@ -495,19 +471,51 @@ rule filter_hmm_res_overlaps:
                 print(hor.strip(), file=out_bed)
 
 
-
-rule filter_final_hmm_res_by_mode:
-    input:
-        rules.filter_hmm_res_overlaps.output,
+use rule filter_hmm_res_overlaps_as_hor as filter_hmm_res_overlaps_sf with:
     output:
-        final_output_pattern,
+        os.path.join(config["output_dir"], "AS-SF-vs-{fname}.bed"),
+    log:
+        "logs/filter_hmm_res_overlaps_{fname}_sf.log",
+
+
+rule filter_final_hmm_res_as_hor:
+    input:
+        rules.filter_hmm_res_overlaps_as_hor.output,
+    output:
+        os.path.join(config["output_dir"], "AS-HOR-vs-{fname}.bed"),
     params:
-        cmd=lambda wc: final_output_cmd,
+        cmd=lambda wc: "'{{ if (length($4)==2) {{next}} print}}'",
     conda:
         "env/env.yaml"
     log:
-        "logs/filter_final_hmm_res_by_mode_{name}.log",
+        "logs/filter_final_hmm_res_by_mode_{fname}.log",
     shell:
         """
         awk {params.cmd} {input} > {output} 2> {log}
         """
+
+
+use rule filter_final_hmm_res_as_hor as filter_final_hmm_res_sf with:
+    input:
+        rules.filter_hmm_res_overlaps_sf.output
+    output:
+        os.path.join(config["output_dir"], "AS-strand-vs-{fname}.bed"),
+    params:
+        cmd=lambda wc: """-F $'\\t' 'BEGIN {{OFS = FS}} {{if ($6=="+") {{$9="0,0,255"}}; if ($6=="-") {{$9="255,0,0"}} print $0}}'""",
+    log:
+        "logs/filter_final_hmm_res_by_mode_{fname}.log",
+
+
+# https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/dc5e958dfc3820fb8cc21a6ccc5cd8e5d6ef1052/hmmer-run.sh#L31
+# # https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/dc5e958dfc3820fb8cc21a6ccc5cd8e5d6ef1052/hmmer-run.sh#L36
+rule humas_hmmer_as_hor:
+    input:
+        expand(rules.filter_hmm_res_overlaps_as_hor.output, fname=NAMES),
+        expand(rules.filter_final_hmm_res_as_hor.output, fname=NAMES),
+    default_target: True
+
+rule humas_hmmer_sf:
+    input:
+        expand(rules.filter_hmm_res_overlaps_sf.output, fname=NAMES),
+        expand(rules.filter_final_hmm_res_sf.output, fname=NAMES),
+
