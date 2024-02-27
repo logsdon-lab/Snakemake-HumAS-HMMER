@@ -1,5 +1,6 @@
 import os
 
+
 # This is a port of the following:
 # * https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/main/hmmer-run.sh
 # * https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/main/hmmer-run_SF.sh
@@ -22,7 +23,14 @@ rule humas_hmmer_analysis:
     output:
         # https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/dc5e958dfc3820fb8cc21a6ccc5cd8e5d6ef1052/hmmer-run.sh#L49
         # Ugh. f-string / numbers will screw up regex for wildcard parsing.
-        temp("nhmmer-" + os.path.splitext(os.path.basename(config["model"]))[0] + "-vs-{fname}-tbl.out"),
+        temp(
+            os.path.join(
+                config["output_dir"],
+                "nhmmer-"
+                + os.path.splitext(os.path.basename(config["model"]))[0]
+                + "-vs-{fname}-tbl.out",
+            )
+        ),
     threads: config["threads"]
     params:
         # https://manpages.ubuntu.com/manpages/focal/man1/nhmmer.1.html
@@ -52,7 +60,13 @@ rule reformat_hmm_tbl_to_bed_w_thr:
     input:
         hmm_tbl=rules.humas_hmmer_analysis.output,
     output:
-        regions=temp(os.path.splitext(os.path.basename(config["model"]))[0] + "-vs-{fname}-tbl.bed"),
+        regions=temp(
+            os.path.join(
+                config["output_dir"],
+                os.path.splitext(os.path.basename(config["model"]))[0]
+                + "-vs-{fname}-tbl.bed",
+            )
+        ),
     params:
         threshold_score=0.7,
     conda:
@@ -355,7 +369,7 @@ rule sort_hmm_res_by_name_coord:
     input:
         rules.reformat_hmm_tbl_to_bed_w_thr.output,
     output:
-        temp("_nhmmer-t0-{fname}.bed"),
+        temp(os.path.join(config["output_dir"], "_nhmmer-t0-{fname}.bed")),
     conda:
         "env/env.yaml"
     log:
@@ -371,7 +385,7 @@ rule filter_hmm_res_by_score:
     input:
         rules.sort_hmm_res_by_name_coord.output,
     output:
-        temp("_nhmmer-t1-{fname}.bed"),
+        temp(os.path.join(config["output_dir"], "_nhmmer-t1-{fname}.bed")),
     # https://bedops.readthedocs.io/en/latest/content/reference/statistics/bedmap.html#usage
     params:
         # Operation
@@ -428,25 +442,23 @@ rule filter_hmm_res_overlaps_as_hor:
         prev_score = 0
         prev_length = 0
 
-        with (
-            open(str(input.regions)) as bed,
-            open(str(output), 'wt') as out_bed
-        ):
+        with open(str(input.regions)) as bed, open(str(output), "wt") as out_bed:
             for line in bed:
-
-                if line[:5] == 'track':
+                if line[:5] == "track":
                     continue
 
-                # read line
-                hor = line.strip().split('\t')
+                    # read line
+                hor = line.strip().split("\t")
                 start = int(hor[1])
                 end = int(hor[2])
                 length = end - start
                 score = float(hor[4])
                 # check if starts or ends match
-                if start in range(prev_start-10, prev_start+10) or end in range(prev_end-10, prev_end+10):
-                    if prev_score-0.01 < score < prev_score+0.01:
-                        #print(start, prev_score, score)
+                if start in range(prev_start - 10, prev_start + 10) or end in range(
+                    prev_end - 10, prev_end + 10
+                ):
+                    if prev_score - 0.01 < score < prev_score + 0.01:
+                        # print(start, prev_score, score)
                         # scores are same, look at length
                         if length > prev_length:
                             new_bed_list.pop()
@@ -459,7 +471,7 @@ rule filter_hmm_res_overlaps_as_hor:
                     else:
                         # don't add current hor
                         continue
-                # add hor
+                        # add hor
                 new_bed_list.append(line)
                 # update indexes
                 prev_start = start
@@ -497,7 +509,7 @@ rule filter_final_hmm_res_as_hor:
 
 use rule filter_final_hmm_res_as_hor as filter_final_hmm_res_sf with:
     input:
-        rules.filter_hmm_res_overlaps_sf.output
+        rules.filter_hmm_res_overlaps_sf.output,
     output:
         os.path.join(config["output_dir"], "AS-strand-vs-{fname}.bed"),
     params:
@@ -514,8 +526,8 @@ rule humas_hmmer_as_hor:
         expand(rules.filter_final_hmm_res_as_hor.output, fname=NAMES),
     default_target: True
 
+
 rule humas_hmmer_sf:
     input:
         expand(rules.filter_hmm_res_overlaps_sf.output, fname=NAMES),
         expand(rules.filter_final_hmm_res_sf.output, fname=NAMES),
-
