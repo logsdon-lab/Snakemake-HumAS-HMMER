@@ -30,7 +30,7 @@ module HumAS_HMMER:
         )
     config: config
 
-use rule * from HumAS_HMMER as hmm_*
+use rule * from HumAS_HMMER as test_*
 ```
 
 Then, using checkpoints, pass in an input dir with `.fa` files.
@@ -50,9 +50,9 @@ def humas_hmmer_outputs(wc):
     fnames = glob_wildcards(os.path.join(fa_file_dir, "{fname}.fa")).fname
     return {
         "overlaps": expand(
-            rules.cens_filter_hmm_res_overlaps_as_hor.output, fname=fnames
+            rules.test_filter_hmm_res_overlaps_as_hor.output, fname=fnames
         ),
-        "final": expand(rules.cens_filter_final_hmm_res_as_hor.output, fname=fnames),
+        "final": expand(rules.test_filter_final_hmm_res_as_hor.output, fname=fnames),
     }
 
 rule run_humas_hmmer_for_anvil:
