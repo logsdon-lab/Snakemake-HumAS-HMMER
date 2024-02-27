@@ -1,4 +1,6 @@
 # Snakemake HumAS-HMMER
+[![CI](https://github.com/koisland/Smk-HumAS-HMMER/actions/workflows/main.yml/badge.svg)](https://github.com/koisland/Smk-HumAS-HMMER/actions/workflows/main.yml)
+
 This is a port of the following:
 * https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/main/hmmer-run.sh
 * https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/main/hmmer-run_SF.sh
@@ -59,5 +61,5 @@ rule run_humas_hmmer_for_anvil:
     input:
         unpack(humas_hmmer_outputs),
     output:
-        temp(touch("/tmp/humas_hmmer_{chr}.done")),
+        temp(touch("/tmp/humas_hmmer.done")),
 ```
