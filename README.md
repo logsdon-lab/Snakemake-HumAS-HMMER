@@ -13,13 +13,27 @@ This is a port of the following:
 2. Alpha-satellite HOR suprachromosomal families BED file.
 
 ### Usage
-Modify `config.yaml` as needed.
 
+Clone the repository.
+```bash
+git clone git@github.com:logsdon-lab/Snakemake-HumAS-HMMER.git
+cd Snakemake-HumAS-HMMER
+```
+
+Modify `config.yaml` as needed.
 ```yaml
+# Input directory
 input_dir: "test/"
+# Output directory
 output_dir: "test/"
+# Optional workflow directories.
+logs_dir: "logs/humas_hmmer"
+benchmarks_dir: "benchmarks/humas_hmmer"
+# Hidden markov model. Should coincide with the rule of choice: SF or AS-HOR.
 model: "data/AS-SFs-hmmer3.0.290621.hmm"
+# nhmmer threads and memory.
 threads: 12
+mem: 4
 ```
 
 Then specify either `humas_hmmer_as_hor` or `humas_hmmer_sf` when running the workflow.
