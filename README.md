@@ -22,15 +22,13 @@ model: "data/AS-SFs-hmmer3.0.290621.hmm"
 threads: 12
 ```
 
-Then specify either `humas_hmmer_as_hor` or `humas_hmmer_sf`
+Then specify either `humas_hmmer_as_hor` or `humas_hmmer_sf` when running the workflow.
+```bash
+snakemake -c 12 --config output_dir=test2 --configfile config/config.yaml -np humas_hmmer_as_hor
+```
 * `humas_hmmer_as_hor` annotates alpha-satellite higher order repeats in the input sequence.
     * This is the default.
 * `humas_hmmer_sf` annotates alpha-satellite HOR suprachromosomal families in the input sequence.
-
-
-```bash
-snakemake -np -c 12 --configfile config/config.yaml
-```
 
 ### Module
 To include this workflow as a module.
