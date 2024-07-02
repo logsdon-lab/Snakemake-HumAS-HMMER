@@ -14,6 +14,8 @@ if config.get("input_dir") and "fnames" not in config:
 elif config.get("fnames"):
     NAMES = config["fnames"]
 
+DEF_MEM = config.get("mem", 4)
+
 
 # https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/dc5e958dfc3820fb8cc21a6ccc5cd8e5d6ef1052/hmmer-run.sh#L42
 rule humas_hmmer_analysis:
@@ -37,6 +39,8 @@ rule humas_hmmer_analysis:
         no_line_limit="--notextw",
         no_alignment="--noali",
         toss_human_readable_output="-o /dev/null",
+    resources:
+        mem=DEF_MEM,
     conda:
         "env/env.yaml"
     log:
@@ -69,6 +73,8 @@ rule reformat_hmm_tbl_to_bed_w_thr:
         ),
     params:
         threshold_score=0.7,
+    resources:
+        mem=DEF_MEM,
     conda:
         "env/env.yaml"
     log:
@@ -370,6 +376,8 @@ rule sort_hmm_res_by_name_coord:
         rules.reformat_hmm_tbl_to_bed_w_thr.output,
     output:
         temp(os.path.join(config["output_dir"], "_nhmmer-t0-{fname}.bed")),
+    resources:
+        mem=DEF_MEM,
     conda:
         "env/env.yaml"
     log:
@@ -392,6 +400,8 @@ rule filter_hmm_res_by_score:
         op_opt="--max-element",
         # Overlap
         overlap_opt="--fraction-either 0.1",
+    resources:
+        mem=DEF_MEM,
     conda:
         "env/env.yaml"
     log:
@@ -411,7 +421,9 @@ rule filter_hmm_res_uniq_element:
     output:
         # Original workflow overwrites sort_hmm_tbl_bed_by_name_coord output.
         # I give unique fname and marked as temp.
-        temp("_nhmmer-t3-{fname}.bed"),
+        temp(os.path.join(config["output_dir"], "_nhmmer-t3-{fname}.bed")),
+    resources:
+        mem=DEF_MEM,
     conda:
         "env/env.yaml"
     log:
@@ -497,6 +509,8 @@ rule filter_final_hmm_res_as_hor:
         os.path.join(config["output_dir"], "AS-HOR-vs-{fname}.bed"),
     params:
         cmd=lambda wc: "'{{ if (length($4)==2) {{next}} print}}'",
+    resources:
+        mem=DEF_MEM,
     conda:
         "env/env.yaml"
     log:

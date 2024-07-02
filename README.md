@@ -5,6 +5,13 @@ This is a port of the following:
 * https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/main/hmmer-run.sh
 * https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/main/hmmer-run_SF.sh
 
+### Input
+* Input directory or list of fasta files.
+
+### Output
+1. Alpha-satellite higher order repeat (HOR) BED file
+2. Alpha-satellite HOR suprachromosomal families BED file.
+
 ### Usage
 Modify `config.yaml` as needed.
 
@@ -14,6 +21,12 @@ output_dir: "test/"
 model: "data/AS-SFs-hmmer3.0.290621.hmm"
 threads: 12
 ```
+
+Then specify either `humas_hmmer_as_hor` or `humas_hmmer_sf`
+* `humas_hmmer_as_hor` annotates alpha-satellite higher order repeats in the input sequence.
+    * This is the default.
+* `humas_hmmer_sf` annotates alpha-satellite HOR suprachromosomal families in the input sequence.
+
 
 ```bash
 snakemake -np -c 12 --configfile config/config.yaml
