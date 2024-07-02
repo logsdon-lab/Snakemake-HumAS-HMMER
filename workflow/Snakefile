@@ -14,7 +14,10 @@ if config.get("input_dir") and "fnames" not in config:
 elif config.get("fnames"):
     NAMES = config["fnames"]
 
+
 DEF_MEM = config.get("mem", 4)
+LOGS_DIR = config.get("logs_dir", "logs/humas_hmmer")
+BMKS_DIR = config.get("benchmarks_dir", "benchmarks/humas_hmmer")
 
 
 # https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/dc5e958dfc3820fb8cc21a6ccc5cd8e5d6ef1052/hmmer-run.sh#L42
@@ -44,9 +47,9 @@ rule humas_hmmer_analysis:
     conda:
         "env/env.yaml"
     log:
-        "logs/humas_hmmer_analysis_{fname}.log",
+        os.path.join(LOGS_DIR, "humas_hmmer_analysis_{fname}.log"),
     benchmark:
-        "benchmarks/humas_hmmer_analysis_{fname}.tsv"
+        os.path.join(BMKS_DIR, "humas_hmmer_analysis_{fname}.tsv")
     shell:
         """
         nhmmer \
@@ -78,7 +81,9 @@ rule reformat_hmm_tbl_to_bed_w_thr:
     conda:
         "env/env.yaml"
     log:
-        "logs/reformat_hmm_tbl_to_bed_w_thr_{fname}.log",
+        os.path.join(LOGS_DIR, "reformat_hmm_tbl_to_bed_w_thr_{fname}.log"),
+    benchmark:
+        os.path.join(BMKS_DIR, "reformat_hmm_tbl_to_bed_w_thr_{fname}.tsv")
     shell:
         """
         awk -v th={params.threshold_score} '\
@@ -381,7 +386,9 @@ rule sort_hmm_res_by_name_coord:
     conda:
         "env/env.yaml"
     log:
-        "logs/sort_hmm_res_by_name_coord_{fname}.log",
+        os.path.join(LOGS_DIR, "sort_hmm_res_by_name_coord_{fname}.log"),
+    benchmark:
+        os.path.join(BMKS_DIR, "sort_hmm_res_by_name_coord_{fname}.tsv")
     shell:
         """
         sort -k 1.4,1 -k 2,2n {input} > {output} 2> {log}
@@ -405,7 +412,9 @@ rule filter_hmm_res_by_score:
     conda:
         "env/env.yaml"
     log:
-        "logs/filter_hmm_res_by_score_{fname}.log",
+        os.path.join(LOGS_DIR, "filter_hmm_res_by_score_{fname}.log"),
+    benchmark:
+        os.path.join(BMKS_DIR, "filter_hmm_res_by_score_{fname}.tsv")
     shell:
         """
         bedmap {params.op_opt} {params.overlap_opt} \
@@ -427,7 +436,9 @@ rule filter_hmm_res_uniq_element:
     conda:
         "env/env.yaml"
     log:
-        "logs/filter_hmm_res_uniq_element_{fname}.log",
+        os.path.join(LOGS_DIR, "filter_hmm_res_uniq_element_{fname}.log"),
+    benchmark:
+        os.path.join(BMKS_DIR, "filter_hmm_res_uniq_element_{fname}.tsv")
     shell:
         """
         awk "{{if(!(\$0 in a)){{a[\$0]; print}}}}" {input} > {output} 2> {log}
@@ -445,7 +456,7 @@ rule filter_hmm_res_overlaps_as_hor:
     output:
         os.path.join(config["output_dir"], "AS-HOR+SF-vs-{fname}.bed"),
     log:
-        "logs/filter_hmm_res_overlaps_{fname}_as_hor.log",
+        os.path.join(LOGS_DIR, "filter_hmm_res_overlaps_{fname}_as_hor.log"),
     run:
         # init indexes
         new_bed_list = []
@@ -499,7 +510,7 @@ use rule filter_hmm_res_overlaps_as_hor as filter_hmm_res_overlaps_sf with:
     output:
         os.path.join(config["output_dir"], "AS-SF-vs-{fname}.bed"),
     log:
-        "logs/filter_hmm_res_overlaps_{fname}_sf.log",
+        os.path.join(LOGS_DIR, "filter_hmm_res_overlaps_{fname}_sf.log"),
 
 
 rule filter_final_hmm_res_as_hor:
@@ -514,7 +525,9 @@ rule filter_final_hmm_res_as_hor:
     conda:
         "env/env.yaml"
     log:
-        "logs/filter_final_hmm_res_by_mode_{fname}.log",
+        os.path.join(LOGS_DIR, "filter_final_hmm_res_as_hor_{fname}.log"),
+    benchmark:
+        os.path.join(BMKS_DIR, "filter_final_hmm_res_as_hor_{fname}.tsv")
     shell:
         """
         awk {params.cmd} {input} > {output} 2> {log}
@@ -529,7 +542,9 @@ use rule filter_final_hmm_res_as_hor as filter_final_hmm_res_sf with:
     params:
         cmd=lambda wc: """-F $'\\t' 'BEGIN {{OFS = FS}} {{if ($6=="+") {{$9="0,0,255"}}; if ($6=="-") {{$9="255,0,0"}} print $0}}'""",
     log:
-        "logs/filter_final_hmm_res_by_mode_{fname}.log",
+        os.path.join(LOGS_DIR, "filter_final_hmm_res_sf_{fname}.log"),
+    benchmark:
+        os.path.join(BMKS_DIR, "filter_final_hmm_res_sf_{fname}.tsv")
 
 
 # https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/dc5e958dfc3820fb8cc21a6ccc5cd8e5d6ef1052/hmmer-run.sh#L31

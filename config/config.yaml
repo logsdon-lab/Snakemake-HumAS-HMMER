@@ -2,6 +2,8 @@ input_dir: "test/"
 # fnames: 
 #   - "test"
 output_dir: "test/"
+logs_dir: "logs/humas_hmmer"
+benchmarks_dir: "benchmarks/humas_hmmer"
 model: "data/AS-SFs-hmmer3.0.290621.hmm"
 threads: 12
 mem: 4
