@@ -441,7 +441,7 @@ rule filter_hmm_res_uniq_element:
         os.path.join(BMKS_DIR, "filter_hmm_res_uniq_element_{fname}.tsv")
     shell:
         """
-        awk "{{if(!(\$0 in a)){{a[\$0]; print}}}}" {input} > {output} 2> {log}
+        awk '{{ if (!($0 in a)) {{ a[$0]; print }} }}' {input} > {output} 2> {log}
         """
 
 
