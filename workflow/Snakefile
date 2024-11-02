@@ -472,6 +472,8 @@ rule filter_hmm_res_overlaps_as_hor:
 
                     # read line
                 hor = line.strip().split("\t")
+                if not hor:
+                    continue
                 start = int(hor[1])
                 end = int(hor[2])
                 length = end - start
