@@ -470,9 +470,9 @@ rule filter_hmm_res_overlaps_as_hor:
                 if line[:5] == "track":
                     continue
 
-                    # read line
+                # read line
                 line = line.strip()
-                if not hor:
+                if not line:
                     continue
                 hor = line.split("\t")
                 start = int(hor[1])
