@@ -26,6 +26,8 @@ Modify `config.yaml` as needed.
 input_dir: "test/"
 # Output directory
 output_dir: "test/"
+# Mode (sf or hor). Must match profile.
+mode: "hor"
 # Optional workflow directories.
 logs_dir: "logs/humas_hmmer"
 benchmarks_dir: "benchmarks/humas_hmmer"
@@ -38,13 +40,13 @@ threads: 12
 mem: 4
 ```
 
-Then specify either `humas_hmmer_as_hor` or `humas_hmmer_sf` when running the workflow.
+Then specify either `hor` or `sf` when running the workflow.
 ```bash
-snakemake -c 12 --config output_dir=test2 --configfile config/config.yaml -np humas_hmmer_as_hor
+snakemake -c 12 --config mode=hor --configfile config/config.yaml -np 
 ```
-* `humas_hmmer_as_hor` annotates alpha-satellite higher order repeats in the input sequence.
+* `hor` annotates alpha-satellite higher order repeats in the input sequence.
     * This is the default.
-* `humas_hmmer_sf` annotates alpha-satellite HOR suprachromosomal families in the input sequence.
+* `sf` annotates alpha-satellite HOR suprachromosomal families in the input sequence.
 
 ### Module
 To include this workflow as a module.
@@ -79,9 +81,9 @@ def humas_hmmer_outputs(wc):
     fnames = glob_wildcards(os.path.join(fa_file_dir, "{fname}.fa")).fname
     return {
         "overlaps": expand(
-            rules.test_filter_hmm_res_overlaps_as_hor.output, fname=fnames
+            rules.test_filter_hmm_res_overlaps.output, mode="hor", fname=fnames
         ),
-        "final": expand(rules.test_filter_final_hmm_res_as_hor.output, fname=fnames),
+        "final": expand(rules.test_filter_final_hmm_res.output, mode="hor", fname=fnames),
     }
 
 rule run_humas_hmmer_for_anvil:
