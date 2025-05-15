@@ -30,7 +30,7 @@ output_dir: "test/"
 logs_dir: "logs/humas_hmmer"
 benchmarks_dir: "benchmarks/humas_hmmer"
 # Hidden markov model. Should coincide with the rule of choice: SF or AS-HOR.
-model: "data/AS-SFs-hmmer3.0.290621.hmm"
+hmm_profile: "data/AS-SFs-hmmer3.0.290621.hmm"
 # Monomer identity threshold.
 thr_ident: 0.7
 # nhmmer threads and memory.
