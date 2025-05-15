@@ -45,7 +45,7 @@ rule humas_hmmer_analysis:
     resources:
         mem=DEF_MEM,
     conda:
-        "env/env.yaml"
+        "envs/env.yaml"
     log:
         os.path.join(LOGS_DIR, "humas_hmmer_analysis_{fname}.log"),
     benchmark:
@@ -80,7 +80,7 @@ rule reformat_hmm_tbl_to_bed_w_thr:
     resources:
         mem=DEF_MEM,
     conda:
-        "env/env.yaml"
+        "envs/env.yaml"
     log:
         os.path.join(LOGS_DIR, "reformat_hmm_tbl_to_bed_w_thr_{fname}.log"),
     benchmark:
@@ -100,7 +100,7 @@ rule sort_hmm_res_by_name_coord:
     resources:
         mem=DEF_MEM,
     conda:
-        "env/env.yaml"
+        "envs/env.yaml"
     log:
         os.path.join(LOGS_DIR, "sort_hmm_res_by_name_coord_{fname}.log"),
     benchmark:
@@ -126,7 +126,7 @@ rule filter_hmm_res_by_score:
     resources:
         mem=DEF_MEM,
     conda:
-        "env/env.yaml"
+        "envs/env.yaml"
     log:
         os.path.join(LOGS_DIR, "filter_hmm_res_by_score_{fname}.log"),
     benchmark:
@@ -150,7 +150,7 @@ rule filter_hmm_res_uniq_element:
     resources:
         mem=DEF_MEM,
     conda:
-        "env/env.yaml"
+        "envs/env.yaml"
     log:
         os.path.join(LOGS_DIR, "filter_hmm_res_uniq_element_{fname}.log"),
     benchmark:
@@ -242,7 +242,7 @@ rule filter_final_hmm_res_as_hor:
     resources:
         mem=DEF_MEM,
     conda:
-        "env/env.yaml"
+        "envs/env.yaml"
     log:
         os.path.join(LOGS_DIR, "filter_final_hmm_res_as_hor_{fname}.log"),
     benchmark:
@@ -266,16 +266,16 @@ use rule filter_final_hmm_res_as_hor as filter_final_hmm_res_sf with:
         os.path.join(BMKS_DIR, "filter_final_hmm_res_sf_{fname}.tsv")
 
 
-rule generate_as_hor_stv:
+rule generate_stv:
     input:
         script=workflow.source_path("scripts/stv_multiarray.py"),
         mon_bed=os.path.join(config["output_dir"], "AS-HOR-vs-{fname}.bed"),
     output:
         os.path.join(config["output_dir"], "{fname}", "stv_row.bed"),
     conda:
-        "env/env.yaml"
+        "envs/env.yaml"
     log:
-        os.path.join(LOGS_DIR, "generate_as_hor_stv_{fname}.log"),
+        os.path.join(LOGS_DIR, "generate_stv_{fname}.log"),
     shell:
         """
         python {input.script} -i {input.mon_bed} > {output}
@@ -288,7 +288,7 @@ rule humas_hmmer_as_hor:
     input:
         expand(rules.filter_hmm_res_overlaps_as_hor.output, fname=NAMES),
         expand(rules.filter_final_hmm_res_as_hor.output, fname=NAMES),
-        expand(rules.generate_as_hor_stv.output, fname=NAMES),
+        expand(rules.generate_stv.output, fname=NAMES),
     default_target: True
 
 
