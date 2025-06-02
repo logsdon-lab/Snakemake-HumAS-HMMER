@@ -3,7 +3,6 @@ import sys
 
 def main():
     infile = sys.argv[1]
-    outfile = sys.argv[2]
     
     # init indexes
     new_bed_list = []
@@ -12,7 +11,7 @@ def main():
     prev_score = 0
     prev_length = 0
 
-    with open(infile) as bed, open(outfile, "wt") as out_bed:
+    with open(infile) as bed:
         for line in bed:
             if line[:5] == "track":
                 continue
@@ -53,7 +52,7 @@ def main():
             prev_length = length
 
         for hor in new_bed_list:
-            print(hor.strip(), file=out_bed)
+            print(hor.strip())
 
 if __name__ == "__main__":
     raise SystemExit(main())

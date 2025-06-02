@@ -162,6 +162,10 @@ rule filter_hmm_res_uniq_element:
         """
 
 
+cmds = {
+    "hor": "'{{ if (length($4)==2) {{next}} print}}'",
+    "sf": """-F $'\\t' 'BEGIN {{OFS = FS}} {{if ($6=="+") {{$9="0,0,255"}}; if ($6=="-") {{$9="255,0,0"}} print $0}}'"""
+}
 # Based on mode, change output file and commands.
 # https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/dc5e958dfc3820fb8cc21a6ccc5cd8e5d6ef1052/hmmer-run.sh#L62
 # https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/dc5e958dfc3820fb8cc21a6ccc5cd8e5d6ef1052/hmmer-run_SF.sh#L62
@@ -175,42 +179,20 @@ rule filter_hmm_res_overlaps:
         os.path.join(config["output_dir"], "AS-{mode}-vs-{fname}.bed"),
     log:
         os.path.join(LOGS_DIR, "filter_hmm_res_overlaps_{fname}_{mode}.log"),
-    conda:
-        "envs/env.yaml"
-    shell:
-        """
-        python {input.script} {input.regions} {output}
-        """
-
-cmds = {
-    "hor": "'{{ if (length($4)==2) {{next}} print}}'",
-    "sf": """-F $'\\t' 'BEGIN {{OFS = FS}} {{if ($6=="+") {{$9="0,0,255"}}; if ($6=="-") {{$9="255,0,0"}} print $0}}'"""
-}
-rule filter_final_hmm_res:
-    input:
-        rules.filter_hmm_res_overlaps.output,
-    output:
-        os.path.join(config["output_dir"], "AS-{mode}-vs-{fname}_final.bed"),
     params:
         cmd=lambda wc: cmds[wc.mode],
-    resources:
-        mem=DEF_MEM,
     conda:
         "envs/env.yaml"
-    log:
-        os.path.join(LOGS_DIR, "filter_final_hmm_res_{mode}_{fname}.log"),
-    benchmark:
-        os.path.join(BMKS_DIR, "filter_final_hmm_res_{mode}_{fname}.tsv")
     shell:
         """
-        awk {params.cmd} {input} > {output} 2> {log}
+        {{ python {input.script} {input.regions} | \
+        awk -v OFS="\\t" {params.cmd} ;}} > {output} 2> {log}
         """
-
 
 rule generate_stv:
     input:
         script=workflow.source_path("scripts/stv_multiarray.py"),
-        mon_bed=expand(rules.filter_final_hmm_res.output, mode="hor", fname="{fname}"),
+        mon_bed=expand(rules.filter_hmm_res_overlaps.output, mode="hor", fname="{fname}"),
     output:
         os.path.join(config["output_dir"], "{fname}", "stv_row.bed"),
     conda:
@@ -228,6 +210,5 @@ rule generate_stv:
 rule humas_hmmer_all:
     input:
         expand(rules.filter_hmm_res_overlaps.output, mode=MODE, fname=NAMES),
-        expand(rules.filter_final_hmm_res.output, mode=MODE, fname=NAMES),
         expand(rules.generate_stv.output, fname=NAMES) if MODE == "hor" else [],
     default_target: True
