@@ -29,7 +29,9 @@ rule humas_hmmer_analysis:
     output:
         # https://github.com/fedorrik/HumAS-HMMER_for_AnVIL/blob/dc5e958dfc3820fb8cc21a6ccc5cd8e5d6ef1052/hmmer-run.sh#L49
         # Ugh. f-string / numbers will screw up regex for wildcard parsing.
-        temp(
+        # Use named pipes to avoid tempfile buildup
+        # https://github.com/snakemake/snakemake/issues/2982
+        pipe(
             os.path.join(
                 config["output_dir"],
                 "nhmmer-"
@@ -37,7 +39,8 @@ rule humas_hmmer_analysis:
                 + "-vs-{fname}-tbl.out",
             )
         ),
-    threads: config["threads"]
+    # Need to share across all pipes.
+    threads: max(config["threads"] - 5, 1)
     params:
         # https://manpages.ubuntu.com/manpages/focal/man1/nhmmer.1.html
         no_line_limit="--notextw",
@@ -69,7 +72,7 @@ rule reformat_hmm_tbl_to_bed_w_thr:
         script=workflow.source_path("scripts/reformat_hmm_tbl_to_bed_w_thr.awk"),
         hmm_tbl=rules.humas_hmmer_analysis.output,
     output:
-        regions=temp(
+        regions=pipe(
             os.path.join(
                 config["output_dir"],
                 os.path.splitext(os.path.basename(config["hmm_profile"]))[0]
@@ -97,7 +100,7 @@ rule sort_hmm_res_by_name_coord:
     input:
         rules.reformat_hmm_tbl_to_bed_w_thr.output,
     output:
-        temp(os.path.join(config["output_dir"], "_nhmmer-t0-{fname}.bed")),
+        pipe(os.path.join(config["output_dir"], "_nhmmer-t0-{fname}.bed")),
     resources:
         mem=DEF_MEM,
     conda:
@@ -117,7 +120,7 @@ rule filter_hmm_res_by_score:
     input:
         rules.sort_hmm_res_by_name_coord.output,
     output:
-        temp(os.path.join(config["output_dir"], "_nhmmer-t1-{fname}.bed")),
+        pipe(os.path.join(config["output_dir"], "_nhmmer-t1-{fname}.bed")),
     # https://bedops.readthedocs.io/en/latest/content/reference/statistics/bedmap.html#usage
     params:
         # Operation
@@ -147,7 +150,7 @@ rule filter_hmm_res_uniq_element:
     output:
         # Original workflow overwrites sort_hmm_tbl_bed_by_name_coord output.
         # I give unique fname and marked as temp.
-        temp(os.path.join(config["output_dir"], "_nhmmer-t3-{fname}.bed")),
+        pipe(os.path.join(config["output_dir"], "_nhmmer-t3-{fname}.bed")),
     resources:
         mem=DEF_MEM,
     conda:
